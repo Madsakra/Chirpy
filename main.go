@@ -8,31 +8,40 @@ import (
 	"sync/atomic"
 
 	"example.com/m/v2/internal/database"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	DB             *database.Queries
+	db             *database.Queries
+	platform       string
 }
 
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	dbURL := os.Getenv("DB_URL")
-	db, err := sql.Open("postgres", dbURL)
+	plat := os.Getenv("PLATFORM")
+	log.Println("DB_URL is:", dbURL)
+	dbs, err := sql.Open("postgres", dbURL)
 
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
-	dbQueries := database.New(db)
+	defer dbs.Close()
+	dbQueries := database.New(dbs)
 
 	const filepathRoot = "."
 	const port = "8080"
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
-		DB:             dbQueries,
+		db:             dbQueries,
+		platform:       plat,
 	}
 
 	mux := http.NewServeMux()
@@ -47,8 +56,10 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
-	mux.HandleFunc("POST /api/validate_chirp", handleVerification)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handleVerification)
+	mux.HandleFunc("GET /api/chirps", apiCfg.GetAllChirps)
 
+	mux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handleMetrics)
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)

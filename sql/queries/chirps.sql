@@ -1,0 +1,23 @@
+-- name: CreateChirps :one
+INSERT INTO chirps(created_at,updated_at,body,user_id)
+VALUES(
+    NOW(),
+    NOW(),
+    $1,
+    $2
+)
+RETURNING *;
+
+
+-- name: DeleteAllChirps :exec
+DELETE FROM chirps;
+
+
+-- name: GetAllChirps :many
+SELECT * FROM chirps;
+
+
+-- name: GetChirp :one
+SELECT * 
+FROM chirps
+WHERE id = $1;

@@ -4,17 +4,26 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
+
+	"example.com/m/v2/internal/database"
+	"github.com/google/uuid"
 )
 
 type parameters struct {
-	Body string `json:"body"`
+	Body    string    `json:"body"`
+	USER_ID uuid.UUID `json:"user_id"`
 }
 
-type cleanedParams struct {
-	Cleaned_Body string `json:"cleaned_body"`
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	USER_ID   uuid.UUID `json:"user_id"`
 }
 
-func handleVerification(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handleVerification(w http.ResponseWriter, r *http.Request) {
 
 	// read from params first
 	decoder := json.NewDecoder(r.Body)
@@ -40,8 +49,21 @@ func handleVerification(w http.ResponseWriter, r *http.Request) {
 		}
 		filteredWord := wordFilter(params.Body, badWords)
 
-		respondWithJSON(w, http.StatusOK, cleanedParams{
-			Cleaned_Body: filteredWord,
+		chirp, err := cfg.db.CreateChirps(r.Context(), database.CreateChirpsParams{
+			Body:   filteredWord,
+			UserID: params.USER_ID,
+		})
+		if err != nil {
+			respondWithError(w, http.StatusNotAcceptable, "Couldn't create user", err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusCreated, Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			USER_ID:   chirp.UserID,
 		})
 	}
 }
