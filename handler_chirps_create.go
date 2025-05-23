@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"example.com/m/v2/internal/auth"
 	"example.com/m/v2/internal/database"
 	"github.com/google/uuid"
 )
@@ -24,6 +25,21 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) handleVerification(w http.ResponseWriter, r *http.Request) {
+
+	bearerToken, err1 := auth.GetBearerToken(r.Header)
+
+	if err1 != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to retrieve bearer token", err1)
+		return
+	}
+
+	verifiedUser, err2 := auth.ValidateJWT(bearerToken, cfg.secret_key)
+
+	if err2 != nil {
+		println(bearerToken)
+		respondWithError(w, http.StatusUnauthorized, "Please Login First before posting", err2)
+		return
+	}
 
 	// read from params first
 	decoder := json.NewDecoder(r.Body)
@@ -51,7 +67,7 @@ func (cfg *apiConfig) handleVerification(w http.ResponseWriter, r *http.Request)
 
 		chirp, err := cfg.db.CreateChirps(r.Context(), database.CreateChirpsParams{
 			Body:   filteredWord,
-			UserID: params.USER_ID,
+			UserID: verifiedUser,
 		})
 		if err != nil {
 			respondWithError(w, http.StatusNotAcceptable, "Couldn't create Chirps", err)
@@ -63,7 +79,7 @@ func (cfg *apiConfig) handleVerification(w http.ResponseWriter, r *http.Request)
 			CreatedAt: chirp.CreatedAt,
 			UpdatedAt: chirp.UpdatedAt,
 			Body:      chirp.Body,
-			USER_ID:   chirp.UserID,
+			USER_ID:   verifiedUser,
 		})
 	}
 }

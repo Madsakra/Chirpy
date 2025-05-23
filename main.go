@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	secret_key     string
 }
 
 func main() {
@@ -26,6 +27,8 @@ func main() {
 	}
 	dbURL := os.Getenv("DB_URL")
 	plat := os.Getenv("PLATFORM")
+	secret_key := os.Getenv("SECRET_KEY")
+
 	log.Println("DB_URL is:", dbURL)
 	dbs, err := sql.Open("postgres", dbURL)
 
@@ -42,6 +45,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		platform:       plat,
+		secret_key:     secret_key,
 	}
 
 	mux := http.NewServeMux()
@@ -63,6 +67,9 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.Login)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handleMetrics)
+
+	mux.HandleFunc("POST /api/refresh", apiCfg.CheckRefreshToken)
+	mux.HandleFunc("POST /api/revoke", apiCfg.RevokeRefreshToken)
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(server.ListenAndServe())
