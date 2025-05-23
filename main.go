@@ -58,8 +58,10 @@ func main() {
 
 	mux.HandleFunc("POST /api/chirps", apiCfg.handleVerification)
 	mux.HandleFunc("GET /api/chirps", apiCfg.GetAllChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.GetChirp)
 
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUser)
+	mux.HandleFunc("POST /api/login", apiCfg.Login)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handleMetrics)
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)

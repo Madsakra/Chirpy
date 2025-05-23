@@ -14,7 +14,8 @@ DELETE FROM chirps;
 
 
 -- name: GetAllChirps :many
-SELECT * FROM chirps;
+SELECT * FROM chirps
+ORDER BY created_at ASC;
 
 
 -- name: GetChirp :one
