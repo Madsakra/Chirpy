@@ -63,6 +63,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.handleVerification)
 	mux.HandleFunc("GET /api/chirps", apiCfg.GetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.GetChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.DeleteSingleChirp)
 
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.Login)
@@ -70,6 +71,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/refresh", apiCfg.CheckRefreshToken)
 	mux.HandleFunc("POST /api/revoke", apiCfg.RevokeRefreshToken)
+
+	mux.HandleFunc("PUT /api/users", apiCfg.UpdateUserAccount)
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(server.ListenAndServe())
