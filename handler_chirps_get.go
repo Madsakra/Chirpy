@@ -2,15 +2,43 @@ package main
 
 import (
 	"net/http"
+	"sort"
 
+	"example.com/m/v2/internal/database"
 	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) GetAllChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetAllChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't fetch Chirps", err)
-		return
+	var chirps []database.Chirp
+	var err error
+	authorIDStr := r.URL.Query().Get("author_id")
+	sortOrder := r.URL.Query().Get("sort")
+
+	if len(authorIDStr) != 0 {
+		userId, err := uuid.Parse(authorIDStr)
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
+		}
+
+		chirps, err = cfg.db.GetChirpByUser(r.Context(), userId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps by user", err)
+			return
+		}
+	} else {
+
+		chirps, err = cfg.db.GetAllChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't fetch chirps", err)
+			return
+		}
+	}
+
+	if sortOrder == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[j].CreatedAt.Before(chirps[i].CreatedAt)
+		})
 	}
 
 	response := make([]Chirp, 0, len(chirps))
